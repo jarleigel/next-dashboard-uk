@@ -2,6 +2,8 @@
 // FOR THIS REASON WE'LL GET THE LAST WEEK AS THE REFERENCE WEEK.
 // IN THE TUTORIAL WE'RE TAKING THE NEXT WEEK AS THE REFERENCE WEEK.
 
+import { auth } from '@clerk/nextjs/server'
+
 const getLatestMonday = (): Date => {
 	const today = new Date()
 	const dayOfWeek = today.getDay()
@@ -43,3 +45,7 @@ export const adjustScheduleToCurrentWeek = (
 		}
 	})
 }
+
+const { userId, sessionClaims } = auth()
+export const role = (sessionClaims?.metadata as { role?: string })?.role
+export const currentUserId = userId

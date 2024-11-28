@@ -1,9 +1,10 @@
+import FormModal from '@/components/FormModal'
 import Pagination from '@/components/Pagination'
 import Table from '@/components/Table'
 import TableSearch from '@/components/TableSearch'
-import { eventsData, role } from '@/lib/data'
 import prisma from '@/lib/prisma'
 import { ITEM_PER_PAGE } from '@/lib/settings'
+import { currentUserId, role } from '@/lib/utils'
 import { Announcement, Class, Prisma } from '@prisma/client'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -25,10 +26,14 @@ const columns = [
 		accessor: 'Date',
 		className: 'hidden md:table-cell',
 	},
-	{
-		header: 'Actions',
-		accessor: 'actions',
-	},
+	...(role === 'admin'
+		? [
+				{
+					header: 'Actions',
+					accessor: 'actions',
+				},
+		  ]
+		: []),
 ]
 
 const renderRow = (item: AnnouncementList) => (
@@ -37,21 +42,17 @@ const renderRow = (item: AnnouncementList) => (
 		className='border-b border-gray-200  even:bg-slate-50 text-sm hover:bg-lamaPurpleLight'
 	>
 		<td className='flex items-center gap-4 p-4'>{item.title}</td>
-		<td className='hidden md:table-cell'>{item.class.name}</td>
+		<td className='hidden md:table-cell'>{item.class?.name || '-'}</td>
 		<td className='hidden md:table-cell'>
 			{new Intl.DateTimeFormat('no-nb').format(item.date)}
 		</td>
 		<td>
 			<div className='flex items-center gap-2'>
-				<Link href={`/list/students/${item.id}`}>
-					<button className='w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky'>
-						<Image src='/edit.png' alt='' width={16} height={16} />
-					</button>
-				</Link>
-				{role === 'admin' && (
-					<button className='w-7 h-7 flex items-center justify-center rounded-full bg-lamaPurple'>
-						<Image src='/delete.png' alt='' width={16} height={16} />
-					</button>
+				{(role === 'admin' || role === 'teacher') && (
+					<>
+						<FormModal table='assignment' type='update' data={item} />
+						<FormModal table='assignment' type='delete' id={item.id} />
+					</>
 				)}
 			</div>
 		</td>
@@ -83,6 +84,19 @@ const AnnouncementsListPage = async ({
 			}
 		}
 	}
+
+	// ROLE CONDITIONS
+
+	const roleConditions = {
+		teacher: { lessons: { some: { teacherId: currentUserId! } } },
+		student: { students: { some: { id: currentUserId! } } },
+		parent: { students: { some: { parentId: currentUserId! } } },
+	}
+
+	query.OR = [
+		{ classId: null },
+		{ class: roleConditions[role as keyof typeof roleConditions] || {} },
+	]
 
 	const [data, count] = await prisma.$transaction([
 		prisma.announcement.findMany({
