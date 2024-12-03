@@ -102,6 +102,6 @@ export const adjustScheduleToCurrentWeek = (
 	})
 }
 
-const { userId, sessionClaims } = auth()
-export const role = (sessionClaims?.metadata as { role?: string })?.role
-export const currentUserId = userId
+// const { userId, sessionClaims } = auth()
+// export const role = (sessionClaims?.metadata as { role?: string })?.role
+// export const currentUserId = userId
